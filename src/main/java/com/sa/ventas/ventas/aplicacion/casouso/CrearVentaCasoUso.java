@@ -1,0 +1,124 @@
+package com.sa.ventas.ventas.aplicacion.casouso;
+
+import com.sa.ventas.asiento.aplicacion.puertos.salida.AsientoOutputPort;
+import com.sa.ventas.boleto.aplicacion.puertos.salida.BoletoOutputPort;
+import com.sa.ventas.boleto.dominio.Boleto;
+import com.sa.ventas.ventas.aplicacion.dto.CrearVentaDTO;
+import com.sa.ventas.ventas.aplicacion.puertos.entrada.CrearVentaInputPort;
+import com.sa.ventas.ventas.aplicacion.puertos.salida.CrearVentaOutputPort;
+import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.NotificarVentaOutputPort;
+import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.VerificarFuncionOutputPort;
+import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.VerificarUsuarioOutputPort;
+import com.sa.ventas.ventas.dominio.Venta;
+import com.sa.ventas.ventas.dominio.objeto_valor.EstadoVenta;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+
+@Service
+public class CrearVentaCasoUso implements CrearVentaInputPort {
+
+    private final CrearVentaOutputPort crearVentaOutputPort;
+    private final BoletoOutputPort boletoOutputPort;
+    private final AsientoOutputPort asientoOutputPort;
+    private final VerificarUsuarioOutputPort verificarUsuarioOutputPort;
+    private final VerificarFuncionOutputPort verificarFuncionOutputPort;
+    private final NotificarVentaOutputPort notificarVentaOutputPort;
+
+    public CrearVentaCasoUso(CrearVentaOutputPort crearVentaOutputPort, BoletoOutputPort boletoOutputPort,
+                             AsientoOutputPort asientoOutputPort, VerificarUsuarioOutputPort verificarUsuarioOutputPort,
+                             VerificarFuncionOutputPort verificarFuncionOutputPort,
+                             NotificarVentaOutputPort notificarVentaOutputPort) {
+        this.crearVentaOutputPort = crearVentaOutputPort;
+        this.boletoOutputPort = boletoOutputPort;
+        this.asientoOutputPort = asientoOutputPort;
+        this.verificarUsuarioOutputPort = verificarUsuarioOutputPort;
+        this.verificarFuncionOutputPort = verificarFuncionOutputPort;
+        this.notificarVentaOutputPort = notificarVentaOutputPort;
+    }
+
+
+    @Override
+    @Transactional
+    public Venta crearVenta(CrearVentaDTO crearVentaDTO) {
+        // Verificar usuario
+        boolean usuarioExiste = verificarUsuarioExistente(crearVentaDTO.getIdUsuario());
+        if (!usuarioExiste) {
+            throw new IllegalArgumentException("El usuario no existe");
+        }
+
+        // Verificar función
+        boolean funcionExiste = verificarFuncionExistente(crearVentaDTO.getIdFuncion());
+        if (!funcionExiste) {
+            throw new IllegalArgumentException("La función no existe");
+        }
+
+        // Verificar disponibilidad de asientos
+        if (!asientoOutputPort.verificarDisponibilidad(crearVentaDTO.getIdsAsientos())) {
+            throw new IllegalStateException("Uno o más asientos no están disponibles");
+        }
+
+        // Crear venta
+        Venta nuevaVenta = new Venta(
+                UUID.randomUUID(),
+                crearVentaDTO.getIdUsuario(),
+                crearVentaDTO.getIdFuncion(),
+                LocalDateTime.now(),
+                crearVentaDTO.getMontoTotal(),
+                EstadoVenta.COMPLETADA,
+                crearVentaDTO.getIdsAsientos().size()
+        );
+
+        Venta ventaCreada = crearVentaOutputPort.crearVenta(nuevaVenta);
+
+        // Reservar asientos
+        asientoOutputPort.reservarAsientos(crearVentaDTO.getIdsAsientos());
+
+        // Crear boletos
+        List<Boleto> boletos = new ArrayList<>();
+        double precioPorBoleto = crearVentaDTO.getMontoTotal() / crearVentaDTO.getIdsAsientos().size();
+
+        for (UUID idAsiento : crearVentaDTO.getIdsAsientos()) {
+            Boleto boleto = new Boleto(
+                    UUID.randomUUID(),
+                    ventaCreada.getVentaId(),
+                    idAsiento,
+                    precioPorBoleto,
+                    generarCodigoBoleto()
+            );
+            boletos.add(boleto);
+        }
+
+        boletoOutputPort.crearBoletos(boletos);
+
+        // Notificar venta creada
+        notificarVentaOutputPort.notificarVentaCreada(ventaCreada);
+
+        return ventaCreada;
+    }
+
+    private boolean verificarUsuarioExistente(UUID idUsuario) {
+        try {
+            return verificarUsuarioOutputPort.verificarUsuario(idUsuario).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error al verificar usuario", e);
+        }
+    }
+
+    private boolean verificarFuncionExistente(UUID idFuncion) {
+        try {
+            return verificarFuncionOutputPort.verificarFuncion(idFuncion).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error al verificar función", e);
+        }
+    }
+
+    private String generarCodigoBoleto() {
+        return "BOL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+}
