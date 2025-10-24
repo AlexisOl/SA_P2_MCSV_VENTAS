@@ -11,12 +11,17 @@ import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.VerificarFuncionOu
 import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.VerificarUsuarioOutputPort;
 import com.sa.ventas.ventas.dominio.Venta;
 import com.sa.ventas.ventas.dominio.objeto_valor.EstadoVenta;
+import com.sa.ventas.ventasnack.aplicacion.puertos.salida.VentaSnackOutputPort;
+import com.sa.ventas.ventasnack.aplicacion.puertos.salida.eventos.VerificarSnackOutputPort;
+import com.sa.ventas.ventasnack.dominio.VentaSnack;
+import com.sa.ventas.ventasnack.infraestructura.eventos.dto.SnackDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -29,17 +34,25 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
     private final VerificarUsuarioOutputPort verificarUsuarioOutputPort;
     private final VerificarFuncionOutputPort verificarFuncionOutputPort;
     private final NotificarVentaOutputPort notificarVentaOutputPort;
+    private final VerificarSnackOutputPort verificarSnackOutputPort;
+    private final VentaSnackOutputPort ventaSnackOutputPort;
 
-    public CrearVentaCasoUso(CrearVentaOutputPort crearVentaOutputPort, BoletoOutputPort boletoOutputPort,
-                             AsientoOutputPort asientoOutputPort, VerificarUsuarioOutputPort verificarUsuarioOutputPort,
+    public CrearVentaCasoUso(CrearVentaOutputPort crearVentaOutputPort,
+                             BoletoOutputPort boletoOutputPort,
+                             AsientoOutputPort asientoOutputPort,
+                             VerificarUsuarioOutputPort verificarUsuarioOutputPort,
                              VerificarFuncionOutputPort verificarFuncionOutputPort,
-                             NotificarVentaOutputPort notificarVentaOutputPort) {
+                             NotificarVentaOutputPort notificarVentaOutputPort,
+                             VerificarSnackOutputPort verificarSnackOutputPort,
+                             VentaSnackOutputPort ventaSnackOutputPort) {
         this.crearVentaOutputPort = crearVentaOutputPort;
         this.boletoOutputPort = boletoOutputPort;
         this.asientoOutputPort = asientoOutputPort;
         this.verificarUsuarioOutputPort = verificarUsuarioOutputPort;
         this.verificarFuncionOutputPort = verificarFuncionOutputPort;
         this.notificarVentaOutputPort = notificarVentaOutputPort;
+        this.verificarSnackOutputPort = verificarSnackOutputPort;
+        this.ventaSnackOutputPort = ventaSnackOutputPort;
     }
 
 
@@ -96,10 +109,46 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
 
         boletoOutputPort.crearBoletos(boletos);
 
+        // Crear ventas de snacks si existen
+        if (crearVentaDTO.getSnacks() != null && !crearVentaDTO.getSnacks().isEmpty()) {
+            List<VentaSnack> ventasSnacks = new ArrayList<>();
+
+            for (Map.Entry<UUID, Integer> entry : crearVentaDTO.getSnacks().entrySet()) {
+                UUID snackId = entry.getKey();
+                Integer cantidad = entry.getValue();
+
+                // Verificar y obtener precio del snack desde el microservicio externo
+                SnackDTO snack = verificarSnackExistente(snackId);
+                if (snack == null) {
+                    throw new IllegalArgumentException("El snack con ID " + snackId + " no existe");
+                }
+
+                VentaSnack ventaSnack = new VentaSnack(
+                        UUID.randomUUID(),
+                        ventaCreada.getVentaId(),
+                        snackId,
+                        cantidad,
+                        snack.getPrecio(),
+                        ventaCreada.getUsuarioId()
+                );
+                ventasSnacks.add(ventaSnack);
+            }
+
+            ventaSnackOutputPort.crearVentasSnacks(ventasSnacks);
+        }
+
         // Notificar venta creada
         notificarVentaOutputPort.notificarVentaCreada(ventaCreada);
 
         return ventaCreada;
+    }
+
+    private SnackDTO verificarSnackExistente(UUID snackId) {
+        try {
+            return verificarSnackOutputPort.obtenerSnack(snackId).get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error al verificar snack", e);
+        }
     }
 
     private boolean verificarUsuarioExistente(UUID idUsuario) {
