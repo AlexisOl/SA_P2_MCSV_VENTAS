@@ -30,14 +30,15 @@ spec:
               value: "appSa456."
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
               value: "http://eureka-service:8765/eureka/"
+            # Kafka MSK
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
-              value: "localhost:9092"
+              value: b-1.kafkap2sa.uqqw98.c10.kafka.us-east-1.amazonaws.com:9094,b-2.kafkap2sa.uqqw98.c10.kafka.us-east-1.amazonaws.com:9094
             - name: SPRING_KAFKA_CONSUMER_GROUP_ID
-              value: "ventas-group"
+              value: anuncios-group
             - name: SPRING_KAFKA_PRODUCER_ACKS
-              value: "all"
+              value: all
             - name: SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET
-              value: "earliest"
+              value: earliest
           resources:
             requests:
               memory: "256Mi"
