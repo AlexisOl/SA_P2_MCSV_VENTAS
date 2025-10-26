@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -23,4 +24,6 @@ public class CrearVentaDTO {
 
     @Positive(message = "El monto total debe ser mayor a cero")
     private Double montoTotal;
+
+    private Map<UUID, Integer> snacks;
 }
