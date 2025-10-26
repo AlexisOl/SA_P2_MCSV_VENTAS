@@ -1,0 +1,80 @@
+server:
+  port: 8090
+  servlet:
+    context-path: /api/ventas
+
+spring:
+  application:
+    name: mcsv-ventas
+
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://40.233.27.238:3307/sales_db
+    username: app_user
+    password: appSa456.
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MariaDBDialect
+    show-sql: true
+
+  flyway:
+    url: jdbc:mariadb://40.233.27.238:3307/sales_db
+    user: app_user
+    password: appSa456.
+    locations: classpath:/db/migration
+    table: schema_version_venta
+    validate-on-migrate: false
+
+  data:
+    web:
+      pageable:
+        one-indexed-parameters: true
+
+  jackson:
+    default-property-inclusion: non_null
+
+  kafka:
+    bootstrap-servers:
+      - b-1.kafkap2sa.uqqw98.c10.kafka.us-east-1.amazonaws.com:9094
+      - b-2.kafkap2sa.uqqw98.c10.kafka.us-east-1.amazonaws.com:9094
+    consumer:
+      group-id: ventas-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        security.protocol: SSL
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        security.protocol: SSL
+
+logging:
+  level:
+    org.apache.kafka: WARN
+    com.tusmicroservicios.anuncios: DEBUG
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8765/eureka
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: localhost
+    prefer-ip-address: true
+
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: alpha
+  show-actuator: false
