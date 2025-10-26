@@ -58,15 +58,21 @@ logging:
     org.apache.kafka: WARN
     com.tusmicroservicios.anuncios: DEBUG
 
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://localhost:8765/eureka
+#    register-with-eureka: true
+#    fetch-registry: true
+#  instance:
+#    hostname: localhost
+#    prefer-ip-address: true
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8765/eureka
+      defaultZone: http://eureka-service:8765/
     register-with-eureka: true
     fetch-registry: true
-  instance:
-    hostname: localhost
-    prefer-ip-address: true
 
 springdoc:
   api-docs:
