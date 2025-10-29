@@ -6,6 +6,7 @@ import com.sa.ventas.boleto.dominio.Boleto;
 import com.sa.ventas.ventas.aplicacion.dto.CrearVentaDTO;
 import com.sa.ventas.ventas.aplicacion.puertos.entrada.CrearVentaInputPort;
 import com.sa.ventas.ventas.aplicacion.puertos.salida.CrearVentaOutputPort;
+import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.CrearFacturaBoleto;
 import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.NotificarVentaOutputPort;
 import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.VerificarFuncionOutputPort;
 import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.VerificarUsuarioOutputPort;
@@ -36,6 +37,7 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
     private final NotificarVentaOutputPort notificarVentaOutputPort;
     private final VerificarSnackOutputPort verificarSnackOutputPort;
     private final VentaSnackOutputPort ventaSnackOutputPort;
+    private final CrearFacturaBoleto facturaBoleto;
 
     public CrearVentaCasoUso(CrearVentaOutputPort crearVentaOutputPort,
                              BoletoOutputPort boletoOutputPort,
@@ -44,7 +46,8 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
                              VerificarFuncionOutputPort verificarFuncionOutputPort,
                              NotificarVentaOutputPort notificarVentaOutputPort,
                              VerificarSnackOutputPort verificarSnackOutputPort,
-                             VentaSnackOutputPort ventaSnackOutputPort) {
+                             VentaSnackOutputPort ventaSnackOutputPort,
+                             CrearFacturaBoleto facturaBoleto) {
         this.crearVentaOutputPort = crearVentaOutputPort;
         this.boletoOutputPort = boletoOutputPort;
         this.asientoOutputPort = asientoOutputPort;
@@ -53,6 +56,7 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
         this.notificarVentaOutputPort = notificarVentaOutputPort;
         this.verificarSnackOutputPort = verificarSnackOutputPort;
         this.ventaSnackOutputPort = ventaSnackOutputPort;
+        this.facturaBoleto = facturaBoleto;
     }
 
 
@@ -60,30 +64,32 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
     @Transactional
     public Venta crearVenta(CrearVentaDTO crearVentaDTO) {
         // Verificar usuario
-        boolean usuarioExiste = verificarUsuarioExistente(crearVentaDTO.getIdUsuario());
-        if (!usuarioExiste) {
-            throw new IllegalArgumentException("El usuario no existe");
-        }
+//        boolean usuarioExiste = verificarUsuarioExistente(crearVentaDTO.getIdUsuario());
+//        if (!usuarioExiste) {
+//            throw new IllegalArgumentException("El usuario no existe");
+//        }
+//
+//        // Verificar función
+//        boolean funcionExiste = verificarFuncionExistente(crearVentaDTO.getIdFuncion());
+//        if (!funcionExiste) {
+//            throw new IllegalArgumentException("La función no existe");
+//        }
+//
+//        // Verificar disponibilidad de asientos
+//        if (!asientoOutputPort.verificarDisponibilidad(crearVentaDTO.getIdsAsientos())) {
+//            throw new IllegalStateException("Uno o más asientos no están disponibles");
+//        }
 
-        // Verificar función
-        boolean funcionExiste = verificarFuncionExistente(crearVentaDTO.getIdFuncion());
-        if (!funcionExiste) {
-            throw new IllegalArgumentException("La función no existe");
-        }
 
-        // Verificar disponibilidad de asientos
-        if (!asientoOutputPort.verificarDisponibilidad(crearVentaDTO.getIdsAsientos())) {
-            throw new IllegalStateException("Uno o más asientos no están disponibles");
-        }
-
+        UUID id = UUID.randomUUID();
         // Crear venta
         Venta nuevaVenta = new Venta(
-                UUID.randomUUID(),
+                id,
                 crearVentaDTO.getIdUsuario(),
                 crearVentaDTO.getIdFuncion(),
                 LocalDateTime.now(),
                 crearVentaDTO.getMontoTotal(),
-                EstadoVenta.COMPLETADA,
+                EstadoVenta.PENDIENTE,
                 crearVentaDTO.getIdsAsientos().size()
         );
 
@@ -108,6 +114,11 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
         }
 
         boletoOutputPort.crearBoletos(boletos);
+        //aca deberia de enviar al evento
+        //crear-factura-boleto
+        this.facturaBoleto.crearFacturaBoleto(ventaCreada, crearVentaDTO.getIdCine());
+
+
 
         // Crear ventas de snacks si existen
         if (crearVentaDTO.getSnacks() != null && !crearVentaDTO.getSnacks().isEmpty()) {
@@ -134,7 +145,10 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
                 ventasSnacks.add(ventaSnack);
             }
 
+
             ventaSnackOutputPort.crearVentasSnacks(ventasSnacks);
+
+            // aca enviar al evento de facturacion de snacks
         }
 
         // Notificar venta creada

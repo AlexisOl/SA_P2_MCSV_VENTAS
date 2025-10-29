@@ -16,6 +16,9 @@ public class CrearVentaDTO {
     @NotNull(message = "El ID del usuario es obligatorio")
     private UUID idUsuario;
 
+    @NotNull(message = "El ID del cine es obligatorio")
+    private UUID idCine;
+
     @NotNull(message = "El ID de la función es obligatorio")
     private UUID idFuncion;
 

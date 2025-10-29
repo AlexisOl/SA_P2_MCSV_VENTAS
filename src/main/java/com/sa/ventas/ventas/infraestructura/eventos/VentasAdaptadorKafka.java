@@ -1,9 +1,16 @@
 package com.sa.ventas.ventas.infraestructura.eventos;
 
+import com.example.comun.DTO.FacturaAnuncio.AnuncioCreadoDTO;
+import com.example.comun.DTO.FacturaBoleto.FacturaBoletoCreadoDTO;
+import com.example.comun.DTO.FacturaBoleto.RespuestaFacturaBoletoCreadoDTO;
+import com.sa.ventas.ventas.aplicacion.puertos.salida.CambiarEstadoVenta;
+import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.CrearFacturaBoleto;
 import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.VerificarFuncionOutputPort;
 import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.VerificarUsuarioOutputPort;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sa.ventas.ventas.dominio.Venta;
+import com.sa.ventas.ventas.dominio.objeto_valor.EstadoVenta;
 import com.sa.ventas.ventas.infraestructura.eventos.dto.VerificarDTO;
 import com.sa.ventas.ventas.infraestructura.eventos.dto.VerificarRespuestaDTO;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -14,23 +21,31 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class VentasAdaptadorKafka implements VerificarUsuarioOutputPort, VerificarFuncionOutputPort {
+public class VentasAdaptadorKafka implements VerificarUsuarioOutputPort, VerificarFuncionOutputPort, CrearFacturaBoleto {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
     private final ConcurrentHashMap<String, CompletableFuture<Boolean>> verificacionFutures = new ConcurrentHashMap<>();
+    private final CambiarEstadoVenta  cambiarEstadoVenta;
 
-    public VentasAdaptadorKafka(KafkaTemplate<String, String> kafkaTemplate, ObjectMapper objectMapper) {
+
+    public VentasAdaptadorKafka(KafkaTemplate<String, String> kafkaTemplate, ObjectMapper objectMapper,
+                                CambiarEstadoVenta  cambiarEstadoVenta) {
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
+        this.cambiarEstadoVenta=cambiarEstadoVenta;
     }
 
+
+    // LISTENERS
     @KafkaListener(topics = "respuesta-verificar-usuario", groupId = "ventas-group")
     public void handleUsuarioVerificationResponse(@Payload String mensaje,
                                                   @Header(value = KafkaHeaders.CORRELATION_ID, required = false) String correlationId) throws Exception {
@@ -63,6 +78,44 @@ public class VentasAdaptadorKafka implements VerificarUsuarioOutputPort, Verific
         }
     }
 
+
+    // para los estados de venta
+    @KafkaListener(topics = "venta-actualizada", groupId = "ventas-group")
+    @Transactional
+    public void manejarExitoVenta(
+            @Payload String mensaje,
+            @Header(value = KafkaHeaders.CORRELATION_ID, required = false) String correlationId
+    )   throws Exception {
+
+        RespuestaFacturaBoletoCreadoDTO solicitud = objectMapper.readValue(mensaje, RespuestaFacturaBoletoCreadoDTO.class);
+
+        this.cambiarEstadoVenta.cambiarEstadoVenta(solicitud.getVentaId(),
+                EstadoVenta.COMPLETADA);
+    }
+
+    @KafkaListener(topics = "venta-fallido", groupId = "ventas-group")
+    @Transactional
+    public void manejarFalloVenta(
+            @Payload String mensaje,
+            @Header(value = KafkaHeaders.CORRELATION_ID, required = false) String correlationId
+    )  throws Exception {
+        RespuestaFacturaBoletoCreadoDTO solicitud = objectMapper.readValue(mensaje, RespuestaFacturaBoletoCreadoDTO.class);
+
+        this.cambiarEstadoVenta.cambiarEstadoVenta(solicitud.getVentaId(),
+                EstadoVenta.ANULADA);
+    }
+
+    // -----------------------------------------
+    // METODOS
+    // -----------------------------------------
+    // METODOS
+    // -----------------------------------------
+    // METODOS
+    // -----------------------------------------
+    // METODOS
+    // -----------------------------------------
+    // METODOS
+
     @Override
     public CompletableFuture<Boolean> verificarUsuario(UUID idUsuario) {
         return enviarVerificacion(idUsuario, "verificar-usuario");
@@ -92,5 +145,35 @@ public class VentasAdaptadorKafka implements VerificarUsuarioOutputPort, Verific
         }
 
         return future;
+    }
+
+    @Override
+    public void crearFacturaBoleto(Venta venta, UUID idCine) {
+        try {
+            String correlationId = UUID.randomUUID().toString();
+
+            // Creamos un DTO solo con lo necesario para facturación
+            FacturaBoletoCreadoDTO evento = new FacturaBoletoCreadoDTO();
+            evento.setVentaId(venta.getVentaId());
+            evento.setUsuarioId(venta.getUsuarioId());
+            evento.setFuncionId(venta.getFuncionId());
+            evento.setMontoTotal(venta.getMontoTotal());
+            evento.setCantidadBoletos(venta.getCantidadBoletos());
+            evento.setFechaVenta(LocalDate.from(venta.getFechaVenta()));
+            evento.setCorrelationId(correlationId);
+            evento.setIdCine(idCine);
+
+            String mensaje = objectMapper.writeValueAsString(evento);
+            Message<String> mensajeKafka = MessageBuilder
+                    .withPayload(mensaje)
+                    .setHeader(KafkaHeaders.TOPIC, "crear-factura-boleto")
+                    .setHeader(KafkaHeaders.CORRELATION_ID, evento.getCorrelationId())
+                    .build();
+
+            kafkaTemplate.send(mensajeKafka);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error enviando evento de creación de venta", e);
+        }
     }
 }

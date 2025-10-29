@@ -1,12 +1,10 @@
 package com.sa.ventas.ventas.infraestructura.salida.adaptador;
 
 import com.sa.ventas.ventas.aplicacion.dto.FiltroVentaDTO;
-import com.sa.ventas.ventas.aplicacion.puertos.salida.AnularVentaOutputPort;
-import com.sa.ventas.ventas.aplicacion.puertos.salida.CrearVentaOutputPort;
-import com.sa.ventas.ventas.aplicacion.puertos.salida.EditarVentaOutputPort;
-import com.sa.ventas.ventas.aplicacion.puertos.salida.ListarVentasOutputPort;
+import com.sa.ventas.ventas.aplicacion.puertos.salida.*;
 import com.sa.ventas.ventas.dominio.Venta;
 import com.sa.ventas.ventas.dominio.objeto_valor.EstadoVenta;
+import com.sa.ventas.ventas.infraestructura.salida.entidades.VentaEntity;
 import com.sa.ventas.ventas.infraestructura.salida.mapper.VentaMapper;
 import com.sa.ventas.ventas.infraestructura.salida.repositorio.VentaRepository;
 import lombok.AllArgsConstructor;
@@ -22,7 +20,8 @@ public class VentaPersistenciaAdaptador implements
         CrearVentaOutputPort,
         EditarVentaOutputPort,
         AnularVentaOutputPort,
-        ListarVentasOutputPort {
+        ListarVentasOutputPort,
+        CambiarEstadoVenta {
 
     private final VentaRepository ventaRepository;
     private final VentaMapper ventaMapper;
@@ -70,5 +69,13 @@ public class VentaPersistenciaAdaptador implements
                         filtro.getFechaFin()
                 )
         );
+    }
+
+    @Override
+    public void cambiarEstadoVenta(UUID id, EstadoVenta estadoVenta) {
+        VentaEntity entidad = this.ventaRepository.findById(id).orElse(null);
+        if (entidad == null) return;
+        entidad.setEstado(estadoVenta);
+        this.ventaRepository.save(entidad);
     }
 }
