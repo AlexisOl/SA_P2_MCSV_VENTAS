@@ -1,21 +1,19 @@
 package com.sa.ventas.ventas.aplicacion.casouso;
 
+import com.example.comun.DTO.PeticionSnackEspecifica.SnackDTO;
 import com.sa.ventas.asiento.aplicacion.puertos.salida.AsientoOutputPort;
 import com.sa.ventas.boleto.aplicacion.puertos.salida.BoletoOutputPort;
 import com.sa.ventas.boleto.dominio.Boleto;
 import com.sa.ventas.ventas.aplicacion.dto.CrearVentaDTO;
 import com.sa.ventas.ventas.aplicacion.puertos.entrada.CrearVentaInputPort;
 import com.sa.ventas.ventas.aplicacion.puertos.salida.CrearVentaOutputPort;
-import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.CrearFacturaBoleto;
-import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.NotificarVentaOutputPort;
-import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.VerificarFuncionOutputPort;
-import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.VerificarUsuarioOutputPort;
+import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.*;
 import com.sa.ventas.ventas.dominio.Venta;
 import com.sa.ventas.ventas.dominio.objeto_valor.EstadoVenta;
 import com.sa.ventas.ventasnack.aplicacion.puertos.salida.VentaSnackOutputPort;
+import com.sa.ventas.ventasnack.aplicacion.puertos.salida.eventos.CrearFacturaSnacksDirecta;
 import com.sa.ventas.ventasnack.aplicacion.puertos.salida.eventos.VerificarSnackOutputPort;
 import com.sa.ventas.ventasnack.dominio.VentaSnack;
-import com.sa.ventas.ventasnack.infraestructura.eventos.dto.SnackDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +36,7 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
     private final VerificarSnackOutputPort verificarSnackOutputPort;
     private final VentaSnackOutputPort ventaSnackOutputPort;
     private final CrearFacturaBoleto facturaBoleto;
+    private final CrearFacturaSnacksDirecta crearFacturaSnacksDirecta;
 
     public CrearVentaCasoUso(CrearVentaOutputPort crearVentaOutputPort,
                              BoletoOutputPort boletoOutputPort,
@@ -47,7 +46,8 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
                              NotificarVentaOutputPort notificarVentaOutputPort,
                              VerificarSnackOutputPort verificarSnackOutputPort,
                              VentaSnackOutputPort ventaSnackOutputPort,
-                             CrearFacturaBoleto facturaBoleto) {
+                             CrearFacturaBoleto facturaBoleto,
+                             CrearFacturaSnacksDirecta crearFacturaSnacksDirecta) {
         this.crearVentaOutputPort = crearVentaOutputPort;
         this.boletoOutputPort = boletoOutputPort;
         this.asientoOutputPort = asientoOutputPort;
@@ -57,6 +57,7 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
         this.verificarSnackOutputPort = verificarSnackOutputPort;
         this.ventaSnackOutputPort = ventaSnackOutputPort;
         this.facturaBoleto = facturaBoleto;
+        this.crearFacturaSnacksDirecta=crearFacturaSnacksDirecta;
     }
 
 
@@ -75,10 +76,10 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
 //            throw new IllegalArgumentException("La función no existe");
 //        }
 //
-//        // Verificar disponibilidad de asientos
-//        if (!asientoOutputPort.verificarDisponibilidad(crearVentaDTO.getIdsAsientos())) {
-//            throw new IllegalStateException("Uno o más asientos no están disponibles");
-//        }
+        // Verificar disponibilidad de asientos
+        if (!asientoOutputPort.verificarDisponibilidad(crearVentaDTO.getIdsAsientos())) {
+            throw new IllegalStateException("Uno o más asientos no están disponibles");
+        }
 
 
         UUID id = UUID.randomUUID();
@@ -146,9 +147,15 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
             }
 
 
-            ventaSnackOutputPort.crearVentasSnacks(ventasSnacks);
+            List<VentaSnack> ventasComida= ventaSnackOutputPort.crearVentasSnacks(ventasSnacks);
 
             // aca enviar al evento de facturacion de snacks
+            //crea 1 por 1, entonces las que alcancen sino se da como estado cancelada
+
+            // aca enviar al evento de facturacion de snacks
+            //crea 1 por 1, entonces las que alcancen sino se da como estado cancelada
+            this.crearFacturaSnacksDirecta.crearFacturaSnacksDirecto(ventasComida, crearVentaDTO.getIdCine() );
+
         }
 
         // Notificar venta creada

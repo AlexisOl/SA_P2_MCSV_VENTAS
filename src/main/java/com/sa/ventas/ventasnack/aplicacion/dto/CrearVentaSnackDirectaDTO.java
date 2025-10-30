@@ -15,6 +15,10 @@ public class CrearVentaSnackDirectaDTO {
     @NotNull(message = "El ID del usuario es obligatorio")
     private UUID usuarioId;
 
+
+    @NotNull(message = "El ID del cine es obligatorio")
+    private UUID cineId;
+
     @NotNull(message = "Debe seleccionar al menos un snack")
     private Map<UUID, Integer> snacks; // Map<snackId, cantidad>
 }
