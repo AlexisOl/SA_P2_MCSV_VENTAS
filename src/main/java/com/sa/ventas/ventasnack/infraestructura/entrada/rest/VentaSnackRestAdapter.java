@@ -38,6 +38,7 @@ public class VentaSnackRestAdapter {
     @Transactional
     public ResponseEntity<List<ResponseVentaSnackDTO>> comprarSnacksDirecto(
             @Valid @RequestBody CrearVentaSnackDirectaDTO dto) {
+        System.out.println("POST /ventas recibido: {} "+ dto);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ventaSnackRestMapper.toResponseVentaSnacksDto(
                         crearVentaSnackDirectaInputPort.crearVentaSnackDirecta(dto)
