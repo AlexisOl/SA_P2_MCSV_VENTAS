@@ -1,7 +1,9 @@
 package com.sa.ventas.ventas.dominio;
 
 import com.sa.ventas.ventas.dominio.objeto_valor.EstadoVenta;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
@@ -9,6 +11,8 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Venta {
 
     private UUID ventaId;

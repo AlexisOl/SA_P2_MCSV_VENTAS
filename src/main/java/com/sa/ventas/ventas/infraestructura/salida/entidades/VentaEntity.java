@@ -50,4 +50,7 @@ public class VentaEntity {
     @Column(name = "porcentaje_descuento")
     private Double porcentajeDescuento;
 
+    @Column(name = "monto_original")
+    private Double montoOriginal;
+
 }
