@@ -35,9 +35,18 @@ public class VentaRestAdapter {
     private final ListarVentasInputPort listarVentasInputPort;
     private final VentaRestMapper ventaRestMapper;
 
-    @Operation(summary = "Crear una nueva venta", description = "Crea una nueva venta de boletos")
+    @Operation(summary = "Crear una nueva venta",
+            description = """
+                   Crea una nueva venta de boletos con opción de aplicar promociones automáticamente.
+                   
+                   Para aplicar promociones:
+                   - Establecer 'aplicarPromocion' en true
+                   - Proporcionar 'salaId' y/o 'peliculaId' para promociones específicas
+                   
+                   El sistema buscará la mejor promoción disponible y la aplicará automáticamente.
+                   """)
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Venta creada exitosamente"),
+            @ApiResponse(responseCode = "201", description = "Venta creada exitosamente (con o sin promoción)"),
             @ApiResponse(responseCode = "400", description = "Datos inválidos"),
             @ApiResponse(responseCode = "409", description = "Asientos no disponibles")
     })
@@ -92,7 +101,8 @@ public class VentaRestAdapter {
         );
     }
 
-    @Operation(summary = "Obtener venta por ID", description = "Obtiene los detalles de una venta específica")
+    @Operation(summary = "Obtener venta por ID",
+            description = "Obtiene los detalles de una venta específica, incluyendo información de promoción si fue aplicada")
     @GetMapping("/{ventaId}")
     public ResponseEntity<ResponseVentaDTO> obtenerVenta(@PathVariable("ventaId") UUID ventaId) {
         return ResponseEntity.ok(

@@ -1,6 +1,7 @@
 package com.sa.ventas.ventas.aplicacion.casouso;
 
 import com.example.comun.DTO.PeticionSnackEspecifica.SnackDTO;
+import com.example.comun.DTO.promocion.PromocionDTO;
 import com.sa.ventas.asiento.aplicacion.puertos.salida.AsientoOutputPort;
 import com.sa.ventas.boleto.aplicacion.puertos.salida.BoletoOutputPort;
 import com.sa.ventas.boleto.dominio.Boleto;
@@ -23,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Service
 public class CrearVentaCasoUso implements CrearVentaInputPort {
@@ -37,6 +40,7 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
     private final VentaSnackOutputPort ventaSnackOutputPort;
     private final CrearFacturaBoleto facturaBoleto;
     private final CrearFacturaSnacksDirecta crearFacturaSnacksDirecta;
+    private final ConsultarPromocionOutputPort consultarPromocionOutputPort;
 
     public CrearVentaCasoUso(CrearVentaOutputPort crearVentaOutputPort,
                              BoletoOutputPort boletoOutputPort,
@@ -47,7 +51,8 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
                              VerificarSnackOutputPort verificarSnackOutputPort,
                              VentaSnackOutputPort ventaSnackOutputPort,
                              CrearFacturaBoleto facturaBoleto,
-                             CrearFacturaSnacksDirecta crearFacturaSnacksDirecta) {
+                             CrearFacturaSnacksDirecta crearFacturaSnacksDirecta,
+                             ConsultarPromocionOutputPort consultarPromocionOutputPort) {
         this.crearVentaOutputPort = crearVentaOutputPort;
         this.boletoOutputPort = boletoOutputPort;
         this.asientoOutputPort = asientoOutputPort;
@@ -57,9 +62,9 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
         this.verificarSnackOutputPort = verificarSnackOutputPort;
         this.ventaSnackOutputPort = ventaSnackOutputPort;
         this.facturaBoleto = facturaBoleto;
-        this.crearFacturaSnacksDirecta=crearFacturaSnacksDirecta;
+        this.crearFacturaSnacksDirecta = crearFacturaSnacksDirecta;
+        this.consultarPromocionOutputPort = consultarPromocionOutputPort;
     }
-
 
     @Override
     @Transactional
@@ -71,7 +76,7 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
         }
 
         // Verificar función
-       boolean funcionExiste = verificarFuncionExistente(crearVentaDTO.getIdFuncion());
+        boolean funcionExiste = verificarFuncionExistente(crearVentaDTO.getIdFuncion());
         if (!funcionExiste) {
             throw new IllegalArgumentException("La función no existe");
         }
@@ -81,32 +86,98 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
             throw new IllegalStateException("Uno o más asientos no están disponibles");
         }
 
+        UUID ventaId = UUID.randomUUID();
+        Double montoOriginal = crearVentaDTO.getMontoTotal();
+        Venta nuevaVenta;
 
-        UUID id = UUID.randomUUID();
-        // Crear venta
-        Venta nuevaVenta = new Venta(
-                id,
-                crearVentaDTO.getIdUsuario(),
-                crearVentaDTO.getIdFuncion(),
-                LocalDateTime.now(),
-                crearVentaDTO.getMontoTotal(),
-                EstadoVenta.PENDIENTE,
-                crearVentaDTO.getIdsAsientos().size()
-        );
+        // Consultar y aplicar promoción si está habilitado
+        if (Boolean.TRUE.equals(crearVentaDTO.getAplicarPromocion())) {
+            PromocionDTO promocion = consultarMejorPromocion(
+                    crearVentaDTO.getIdCine(),
+                    crearVentaDTO.getSalaId(),
+                    crearVentaDTO.getPeliculaId(),
+                    crearVentaDTO.getIdUsuario()
+            );
+
+            if (promocion != null && promocion.getExiste() && promocion.getPorcentajeDescuento() > 0) {
+                System.out.println("Aplicando promoción: " + promocion.getNombre() +
+                        " - Descuento: " + promocion.getPorcentajeDescuento() + "%");
+
+                nuevaVenta = new Venta(
+                        ventaId,
+                        crearVentaDTO.getIdUsuario(),
+                        crearVentaDTO.getIdFuncion(),
+                        LocalDateTime.now(),
+                        montoOriginal,
+                        EstadoVenta.PENDIENTE,
+                        crearVentaDTO.getIdsAsientos().size(),
+                        promocion.getPromocionId(),
+                        promocion.getPorcentajeDescuento()
+                );
+            } else {
+                System.out.println("No se encontró promoción aplicable, creando venta sin descuento");
+                nuevaVenta = crearVentaSinPromocion(ventaId, crearVentaDTO, montoOriginal);
+            }
+        } else {
+            nuevaVenta = crearVentaSinPromocion(ventaId, crearVentaDTO, montoOriginal);
+        }
 
         Venta ventaCreada = crearVentaOutputPort.crearVenta(nuevaVenta);
 
         // Reservar asientos
         asientoOutputPort.reservarAsientos(crearVentaDTO.getIdsAsientos());
 
-        // Crear boletos
-        List<Boleto> boletos = new ArrayList<>();
-        double precioPorBoleto = crearVentaDTO.getMontoTotal() / crearVentaDTO.getIdsAsientos().size();
+        // Crear boletos con el precio ajustado si hay promoción
+        crearBoletos(ventaCreada, crearVentaDTO.getIdsAsientos());
 
-        for (UUID idAsiento : crearVentaDTO.getIdsAsientos()) {
+        // Crear factura de boletos
+        this.facturaBoleto.crearFacturaBoleto(ventaCreada, crearVentaDTO.getIdCine());
+
+        // Procesar snacks si existen
+        procesarSnacks(crearVentaDTO, ventaCreada);
+
+        // Notificar venta creada
+        notificarVentaOutputPort.notificarVentaCreada(ventaCreada);
+
+        return ventaCreada;
+    }
+
+    private Venta crearVentaSinPromocion(UUID ventaId, CrearVentaDTO dto, Double monto) {
+        return new Venta(
+                ventaId,
+                dto.getIdUsuario(),
+                dto.getIdFuncion(),
+                LocalDateTime.now(),
+                monto,
+                EstadoVenta.PENDIENTE,
+                dto.getIdsAsientos().size()
+        );
+    }
+
+    private PromocionDTO consultarMejorPromocion(UUID cineId, UUID salaId, UUID peliculaId, UUID clienteId) {
+        try {
+            // Consultar promoción para boletos
+            return consultarPromocionOutputPort.obtenerMejorPromocion(
+                    cineId,
+                    salaId,
+                    peliculaId,
+                    clienteId,
+                    "BOLETOS"
+            ).get(10, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            System.err.println("Error al consultar promoción: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private void crearBoletos(Venta venta, List<UUID> idsAsientos) {
+        List<Boleto> boletos = new ArrayList<>();
+        double precioPorBoleto = venta.getMontoTotal() / idsAsientos.size();
+
+        for (UUID idAsiento : idsAsientos) {
             Boleto boleto = new Boleto(
                     UUID.randomUUID(),
-                    ventaCreada.getVentaId(),
+                    venta.getVentaId(),
                     idAsiento,
                     precioPorBoleto,
                     generarCodigoBoleto()
@@ -115,21 +186,16 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
         }
 
         boletoOutputPort.crearBoletos(boletos);
-        //aca deberia de enviar al evento
-        //crear-factura-boleto
-        this.facturaBoleto.crearFacturaBoleto(ventaCreada, crearVentaDTO.getIdCine());
+    }
 
-
-
-        // Crear ventas de snacks si existen
-        if (crearVentaDTO.getSnacks() != null && !crearVentaDTO.getSnacks().isEmpty()) {
+    private void procesarSnacks(CrearVentaDTO dto, Venta ventaCreada) {
+        if (dto.getSnacks() != null && !dto.getSnacks().isEmpty()) {
             List<VentaSnack> ventasSnacks = new ArrayList<>();
 
-            for (Map.Entry<UUID, Integer> entry : crearVentaDTO.getSnacks().entrySet()) {
+            for (Map.Entry<UUID, Integer> entry : dto.getSnacks().entrySet()) {
                 UUID snackId = entry.getKey();
                 Integer cantidad = entry.getValue();
 
-                // Verificar y obtener precio del snack desde el microservicio externo
                 SnackDTO snack = verificarSnackExistente(snackId);
                 if (snack == null) {
                     throw new IllegalArgumentException("El snack con ID " + snackId + " no existe");
@@ -146,22 +212,9 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
                 ventasSnacks.add(ventaSnack);
             }
 
-
-            List<VentaSnack> ventasComida= ventaSnackOutputPort.crearVentasSnacks(ventasSnacks);
-
-            // aca enviar al evento de facturacion de snacks
-            //crea 1 por 1, entonces las que alcancen sino se da como estado cancelada
-
-            // aca enviar al evento de facturacion de snacks
-            //crea 1 por 1, entonces las que alcancen sino se da como estado cancelada
-            this.crearFacturaSnacksDirecta.crearFacturaSnacksDirecto(ventasComida, crearVentaDTO.getIdCine() );
-
+            List<VentaSnack> ventasComida = ventaSnackOutputPort.crearVentasSnacks(ventasSnacks);
+            this.crearFacturaSnacksDirecta.crearFacturaSnacksDirecto(ventasComida, dto.getIdCine());
         }
-
-        // Notificar venta creada
-        notificarVentaOutputPort.notificarVentaCreada(ventaCreada);
-
-        return ventaCreada;
     }
 
     private SnackDTO verificarSnackExistente(UUID snackId) {
@@ -191,4 +244,5 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
     private String generarCodigoBoleto() {
         return "BOL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
+
 }

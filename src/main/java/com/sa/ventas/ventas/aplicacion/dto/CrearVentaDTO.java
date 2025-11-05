@@ -29,4 +29,7 @@ public class CrearVentaDTO {
     private Double montoTotal;
 
     private Map<UUID, Integer> snacks;
+    private UUID salaId;
+    private UUID peliculaId;
+    private Boolean aplicarPromocion;
 }

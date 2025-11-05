@@ -15,4 +15,9 @@ public class ResponseVentaDTO {
     private Double montoTotal;
     private EstadoVenta estado;
     private Integer cantidadBoletos;
+
+    private UUID promocionAplicadaId;
+    private Double montoDescuento;
+    private Double porcentajeDescuento;
+    private Double montoOriginal;
 }
