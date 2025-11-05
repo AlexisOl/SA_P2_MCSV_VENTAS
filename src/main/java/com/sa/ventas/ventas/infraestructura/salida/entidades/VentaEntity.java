@@ -41,4 +41,13 @@ public class VentaEntity {
     @Column(name = "cantidad_boletos", nullable = false)
     private Integer cantidadBoletos;
 
+    @Column(name = "promocion_aplicada_id")
+    private UUID promocionAplicadaId;
+
+    @Column(name = "monto_descuento")
+    private Double montoDescuento;
+
+    @Column(name = "porcentaje_descuento")
+    private Double porcentajeDescuento;
+
 }

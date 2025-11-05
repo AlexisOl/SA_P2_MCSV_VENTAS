@@ -65,17 +65,17 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
     @Transactional
     public Venta crearVenta(CrearVentaDTO crearVentaDTO) {
         // Verificar usuario
-//        boolean usuarioExiste = verificarUsuarioExistente(crearVentaDTO.getIdUsuario());
-//        if (!usuarioExiste) {
-//            throw new IllegalArgumentException("El usuario no existe");
-//        }
-//
-//        // Verificar función
-//        boolean funcionExiste = verificarFuncionExistente(crearVentaDTO.getIdFuncion());
-//        if (!funcionExiste) {
-//            throw new IllegalArgumentException("La función no existe");
-//        }
-//
+        boolean usuarioExiste = verificarUsuarioExistente(crearVentaDTO.getIdUsuario());
+        if (!usuarioExiste) {
+            throw new IllegalArgumentException("El usuario no existe");
+        }
+
+        // Verificar función
+       boolean funcionExiste = verificarFuncionExistente(crearVentaDTO.getIdFuncion());
+        if (!funcionExiste) {
+            throw new IllegalArgumentException("La función no existe");
+        }
+
         // Verificar disponibilidad de asientos
         if (!asientoOutputPort.verificarDisponibilidad(crearVentaDTO.getIdsAsientos())) {
             throw new IllegalStateException("Uno o más asientos no están disponibles");
