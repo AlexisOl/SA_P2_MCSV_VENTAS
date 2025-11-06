@@ -38,12 +38,6 @@ public class VentaRestAdapter {
     @Operation(summary = "Crear una nueva venta",
             description = """
                    Crea una nueva venta de boletos con opción de aplicar promociones automáticamente.
-                   
-                   Para aplicar promociones:
-                   - Establecer 'aplicarPromocion' en true
-                   - Proporcionar 'salaId' y/o 'peliculaId' para promociones específicas
-                   
-                   El sistema buscará la mejor promoción disponible y la aplicará automáticamente.
                    """)
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Venta creada exitosamente (con o sin promoción)"),
