@@ -19,10 +19,10 @@ public interface AsientoRepository extends JpaRepository<AsientoEntity, UUID> {
     boolean todosDisponibles(@Param("ids") List<UUID> ids, @Param("cantidad") long cantidad);
 
     @Modifying
-    @Query("UPDATE AsientoEntity a SET a.disponible = false WHERE a.salaId IN :ids")
+    @Query("UPDATE AsientoEntity a SET a.disponible = false WHERE a.asientoId IN :ids")
     void reservarAsientos(@Param("ids") List<UUID> ids);
 
     @Modifying
-    @Query("UPDATE AsientoEntity a SET a.disponible = true WHERE a.salaId IN :ids")
+    @Query("UPDATE AsientoEntity a SET a.disponible = true WHERE a.asientoId IN :ids")
     void liberarAsientos(@Param("ids") List<UUID> ids);
 }
