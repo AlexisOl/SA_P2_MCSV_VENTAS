@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -78,15 +79,22 @@ public class VentaRestAdapter {
     @Operation(summary = "Listar ventas", description = "Lista todas las ventas con filtros opcionales")
     @GetMapping
     public ResponseEntity<List<ResponseVentaDTO>> listarVentas(
-            @RequestParam(required = false) UUID usuarioId,
-            @RequestParam(required = false) UUID funcionId,
-            @RequestParam(required = false) String estado,
-            @RequestParam(required = false) String fechaInicio,
-            @RequestParam(required = false) String fechaFin) {
+            @RequestParam(name = "usuarioId", required = false) UUID usuarioId,
+            @RequestParam(name = "funcionId", required = false) UUID funcionId,
+            @RequestParam(name = "estado", required = false) String estado,
+            @RequestParam(name = "fechaInicio", required = false) String fechaInicio,
+            @RequestParam(name = "fechaFin", required = false) String fechaFin) {
 
         FiltroVentaDTO filtro = new FiltroVentaDTO();
         filtro.setUsuarioId(usuarioId);
         filtro.setFuncionId(funcionId);
+        if (fechaInicio != null) {
+            filtro.setFechaInicio(LocalDateTime.parse(fechaInicio));
+        }
+        if (fechaFin != null) {
+            filtro.setFechaFin(LocalDateTime.parse(fechaFin));
+        }
+
 
         return ResponseEntity.ok(
                 ventaRestMapper.toResponseVentasDto(
