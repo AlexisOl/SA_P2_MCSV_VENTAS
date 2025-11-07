@@ -20,10 +20,10 @@ public interface VentaRepository extends JpaRepository<VentaEntity, UUID> {
     List<VentaEntity> findByEstado(EstadoVenta estado);
 
     @Query("SELECT v FROM VentaEntity v WHERE " +
-            "(:idUsuario IS NULL OR v.usuarioId = :usuarioId) AND " +
-            "(:idFuncion IS NULL OR v.funcionId = :funcionId) AND " +
-            "(:estado IS NULL OR v.estado = :estado) AND " +
-            "(:fechaInicio IS NULL OR v.fechaVenta >= :fechaInicio) AND " +
+            "(:idUsuario IS NULL OR v.usuarioId = :usuarioId) OR " +
+            "(:idFuncion IS NULL OR v.funcionId = :funcionId) OR " +
+            "(:estado IS NULL OR v.estado = :estado) OR " +
+            "(:fechaInicio IS NULL OR v.fechaVenta >= :fechaInicio) OR " +
             "(:fechaFin IS NULL OR v.fechaVenta <= :fechaFin)")
     List<VentaEntity> buscarConFiltros(
             @Param("usuarioId") UUID usuarioId,
