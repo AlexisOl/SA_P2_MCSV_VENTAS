@@ -43,14 +43,14 @@ public class HorarioAdaptadorKafka {
             char letraFila = (char) ('A' + i);
 
             for (int j = 1; j <= totalColumnas; j++) {
-                String nombreAsiento = letraFila + String.valueOf(j);
-                System.out.println("Creando asiento: " + nombreAsiento);
+                //String nombreAsiento = letraFila + String.valueOf(j);
+                //System.out.println("Creando asiento: " + nombreAsiento);
 
                 CrearAsientoDTO asiento = new CrearAsientoDTO(
                         evento.getSalaId(),
                         evento.getFuncionId(),
-                        nombreAsiento,
-                        1 // estado disponible
+                        String.valueOf(letraFila),
+                       j
                 );
                 this.crearAsientoInputPort.crearAsiento(asiento);
             }
