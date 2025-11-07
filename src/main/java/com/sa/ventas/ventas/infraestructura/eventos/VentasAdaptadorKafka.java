@@ -83,7 +83,7 @@ public class VentasAdaptadorKafka implements VerificarUsuarioOutputPort, Verific
 
 
     // para los estados de venta
-    @KafkaListener(topics = "venta-actualizada", groupId = "ventas-group")
+    @KafkaListener(topics = "venta-actualizada-boleto", groupId = "ventas-group")
     @Transactional
     public void manejarExitoVenta(
             @Payload String mensaje,
@@ -96,7 +96,7 @@ public class VentasAdaptadorKafka implements VerificarUsuarioOutputPort, Verific
                 EstadoVenta.COMPLETADA);
     }
 
-    @KafkaListener(topics = "venta-fallido", groupId = "ventas-group")
+    @KafkaListener(topics = "venta-fallido-boleto", groupId = "ventas-group")
     @Transactional
     public void manejarFalloVenta(
             @Payload String mensaje,
