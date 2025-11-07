@@ -63,7 +63,7 @@
         <dependency>
             <groupId>com.example</groupId>
             <artifactId>comun</artifactId>
-            <version>1.0.62-SNAPSHOT</version>
+            <version>1.0.69-SNAPSHOT</version>
         </dependency>
         <!-- clientde kafk-a-->
         <dependency>

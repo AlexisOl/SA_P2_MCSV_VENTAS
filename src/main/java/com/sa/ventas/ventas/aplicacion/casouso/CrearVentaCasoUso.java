@@ -131,7 +131,7 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
         crearBoletos(ventaCreada, crearVentaDTO.getIdsAsientos());
 
         // Crear factura de boletos
-        this.facturaBoleto.crearFacturaBoleto(ventaCreada, crearVentaDTO.getIdCine());
+        this.facturaBoleto.crearFacturaBoleto(ventaCreada, crearVentaDTO.getIdCine(), crearVentaDTO.getIdsAsientos());
 
         // Procesar snacks si existen
         procesarSnacks(crearVentaDTO, ventaCreada);

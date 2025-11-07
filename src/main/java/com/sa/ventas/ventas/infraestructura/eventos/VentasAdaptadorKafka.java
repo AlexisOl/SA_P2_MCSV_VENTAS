@@ -2,6 +2,7 @@ package com.sa.ventas.ventas.infraestructura.eventos;
 
 import com.example.comun.DTO.FacturaAnuncio.AnuncioCreadoDTO;
 import com.example.comun.DTO.FacturaBoleto.*;
+import com.sa.ventas.asiento.aplicacion.puertos.salida.AsientoOutputPort;
 import com.sa.ventas.ventas.aplicacion.puertos.salida.CambiarEstadoVenta;
 import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.CrearFacturaBoleto;
 import com.sa.ventas.ventas.aplicacion.puertos.salida.eventos.CrearFacturaSnacks;
@@ -38,13 +39,15 @@ public class VentasAdaptadorKafka implements VerificarUsuarioOutputPort, Verific
     private final ObjectMapper objectMapper;
     private final ConcurrentHashMap<String, CompletableFuture<Boolean>> verificacionFutures = new ConcurrentHashMap<>();
     private final CambiarEstadoVenta  cambiarEstadoVenta;
-
+    private final AsientoOutputPort asientoOutputPort;
 
     public VentasAdaptadorKafka(KafkaTemplate<String, String> kafkaTemplate, ObjectMapper objectMapper,
-                                CambiarEstadoVenta  cambiarEstadoVenta) {
+                                CambiarEstadoVenta  cambiarEstadoVenta,
+                                AsientoOutputPort asientoOutputPort) {
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
         this.cambiarEstadoVenta=cambiarEstadoVenta;
+        this.asientoOutputPort=asientoOutputPort;
     }
 
 
@@ -104,6 +107,8 @@ public class VentasAdaptadorKafka implements VerificarUsuarioOutputPort, Verific
     )  throws Exception {
         RespuestaFacturaBoletoCreadoDTO solicitud = objectMapper.readValue(mensaje, RespuestaFacturaBoletoCreadoDTO.class);
 
+        this.asientoOutputPort.liberarAsientos(solicitud.getIds());
+
         this.cambiarEstadoVenta.cambiarEstadoVenta(solicitud.getVentaId(),
                 EstadoVenta.ANULADA);
     }
@@ -151,7 +156,7 @@ public class VentasAdaptadorKafka implements VerificarUsuarioOutputPort, Verific
     }
 
     @Override
-    public void crearFacturaBoleto(Venta venta, UUID idCine) {
+    public void crearFacturaBoleto(Venta venta, UUID idCine,  List<UUID> uuids) {
         try {
             String correlationId = UUID.randomUUID().toString();
             // Creamos un DTO solo con lo necesario para facturación
@@ -164,6 +169,7 @@ public class VentasAdaptadorKafka implements VerificarUsuarioOutputPort, Verific
             evento.setFechaVenta(LocalDate.from(venta.getFechaVenta()));
             evento.setCorrelationId(correlationId);
             evento.setIdCine(idCine);
+            evento.setIds(uuids);
 
             String mensaje = objectMapper.writeValueAsString(evento);
             Message<String> mensajeKafka = MessageBuilder
