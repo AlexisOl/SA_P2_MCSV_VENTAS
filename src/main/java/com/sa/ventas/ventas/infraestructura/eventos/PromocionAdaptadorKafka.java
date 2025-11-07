@@ -64,7 +64,7 @@ public class PromocionAdaptadorKafka implements ConsultarPromocionOutputPort {
 
         try {
             ConsultaPromocionDTO consulta = new ConsultaPromocionDTO(
-                    cineId, salaId, peliculaId, clienteId, tipo, correlationId
+                    cineId, salaId, peliculaId, clienteId, null, correlationId
             );
 
             String mensaje = objectMapper.writeValueAsString(consulta);
