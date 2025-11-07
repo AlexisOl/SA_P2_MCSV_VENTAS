@@ -15,13 +15,13 @@ import java.util.UUID;
 @Repository
 public interface VentaRepository extends JpaRepository<VentaEntity, UUID> {
 
-    List<VentaEntity> findByUsuarioId(UUID usuarioId);
-    List<VentaEntity> findByFuncionId(UUID funcionId);
-    List<VentaEntity> findByEstado(EstadoVenta estado);
+    //List<VentaEntity> findByUsuarioId(UUID usuarioId);
+    //List<VentaEntity> findByFuncionId(UUID funcionId);
+    //List<VentaEntity> findByEstado(EstadoVenta estado);
 
     @Query("SELECT v FROM VentaEntity v WHERE " +
-            "(:idUsuario IS NULL OR v.usuarioId = :usuarioId) OR " +
-            "(:idFuncion IS NULL OR v.funcionId = :funcionId) OR " +
+            "(:usuarioId IS NULL OR v.usuarioId = :usuarioId) OR " +
+            "(:funcionId IS NULL OR v.funcionId = :funcionId) OR " +
             "(:estado IS NULL OR v.estado = :estado) OR " +
             "(:fechaInicio IS NULL OR v.fechaVenta >= :fechaInicio) OR " +
             "(:fechaFin IS NULL OR v.fechaVenta <= :fechaFin)")

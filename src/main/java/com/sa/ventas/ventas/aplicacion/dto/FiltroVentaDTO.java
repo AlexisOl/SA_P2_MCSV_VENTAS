@@ -9,7 +9,6 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class FiltroVentaDTO {
 
     private UUID usuarioId;
