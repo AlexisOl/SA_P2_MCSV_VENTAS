@@ -31,4 +31,7 @@ public class AsientoEntity {
 
     @Column(nullable = false)
     private Boolean disponible;
+
+    @Column(name = "funcion_id", nullable = false)
+    private UUID funcionId;
 }

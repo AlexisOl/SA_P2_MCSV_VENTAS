@@ -13,7 +13,7 @@ import java.util.UUID;
 @Repository
 public interface AsientoRepository extends JpaRepository<AsientoEntity, UUID> {
 
-    List<AsientoEntity> findBySalaId(UUID salaId);
+    List<AsientoEntity> findBySalaIdAndFuncionId(UUID salaId, UUID funcionId);
 
     @Query("SELECT COUNT(a) = :cantidad FROM AsientoEntity a WHERE a.asientoId IN :ids AND a.disponible = true")
     boolean todosDisponibles(@Param("ids") List<UUID> ids, @Param("cantidad") long cantidad);

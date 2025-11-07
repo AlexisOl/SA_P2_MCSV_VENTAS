@@ -15,6 +15,9 @@ public class CrearAsientoDTO {
     @NotNull(message = "El ID de la sala es obligatorio")
     private UUID salaId;
 
+    @NotNull(message = "El ID de la funcion es obligatorio")
+    private UUID funcionId;
+
     @NotNull(message = "El numero de fila es obligatorio")
     private String fila;
     @NotNull(message = "El numero de columna es obligatorio")

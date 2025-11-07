@@ -7,6 +7,6 @@ import java.util.UUID;
 
 public interface ListarAsientosOutputPort {
 
-    List<Asiento> listarAsientosPorSala(UUID salaId);
+    List<Asiento> listarAsientosPorSala(UUID salaId, UUID funcionId);
     Asiento obtenerAsientoPorId(UUID asientoId);
 }

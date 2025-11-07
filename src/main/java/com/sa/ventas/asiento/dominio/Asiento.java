@@ -14,13 +14,15 @@ public class Asiento {
     private Integer columna;
     private UUID salaId;
     private Boolean disponible;
+    private UUID funcionId;
 
-    public Asiento(UUID asientoId, String fila, Integer columna, UUID salaId, Boolean disponible) {
+    public Asiento(UUID asientoId, String fila, Integer columna, UUID salaId, Boolean disponible, UUID funcionId) {
         this.asientoId = asientoId;
         this.fila = fila;
         this.columna = columna;
         this.salaId = salaId;
         this.disponible = disponible;
+        this.funcionId = funcionId;
         validarAsiento();
     }
 

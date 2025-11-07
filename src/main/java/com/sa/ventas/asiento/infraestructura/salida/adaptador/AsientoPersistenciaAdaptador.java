@@ -34,9 +34,9 @@ public class AsientoPersistenciaAdaptador implements
     }
 
     @Override
-    public List<Asiento> listarAsientosPorSala(UUID salaId) {
+    public List<Asiento> listarAsientosPorSala(UUID salaId, UUID funcionId) {
         return asientoMapper.toAsientoList(
-                asientoRepository.findBySalaId(salaId)
+                asientoRepository.findBySalaIdAndFuncionId(salaId, funcionId)
         );
     }
 

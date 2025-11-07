@@ -27,7 +27,8 @@ public class CrearAsientoCasoUso implements CrearAsientoInputPort {
                 crearAsientoDTO.getFila(),
                 crearAsientoDTO.getColumna(),
                 crearAsientoDTO.getSalaId(),
-                true // Disponible por defecto
+                true, // Disponible por defecto
+                crearAsientoDTO.getFuncionId()
         );
 
         return crearAsientoOutputPort.crearAsiento(nuevoAsiento);

@@ -36,11 +36,11 @@ public class AsientoRestAdapter {
                 ));
     }
 
-    @GetMapping("/sala/{salaId}")
-    public ResponseEntity<List<ResponseAsientoDTO>> listarAsientosPorSala(@PathVariable("salaId") UUID salaId) {
+    @GetMapping("/sala/{salaId}/{funcionId}")
+    public ResponseEntity<List<ResponseAsientoDTO>> listarAsientosPorSala(@PathVariable("salaId") UUID salaId, @PathVariable("funcionId") UUID funcionId) {
         return ResponseEntity.ok(
                 asientoRestMapper.toResponseAsientosDto(
-                        listarAsientosInputPort.listarAsientosPorSala(salaId)
+                        listarAsientosInputPort.listarAsientosPorSala(salaId, funcionId)
                 )
         );
     }

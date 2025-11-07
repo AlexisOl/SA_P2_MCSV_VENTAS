@@ -19,8 +19,8 @@ public class ListarAsientosUseCase implements ListarAsientosInputPort {
     }
 
     @Override
-    public List<Asiento> listarAsientosPorSala(UUID idSala) {
-        return listarAsientosOutputPort.listarAsientosPorSala(idSala);
+    public List<Asiento> listarAsientosPorSala(UUID idSala, UUID funcionId) {
+        return listarAsientosOutputPort.listarAsientosPorSala(idSala, funcionId);
     }
 
     @Override
