@@ -46,7 +46,7 @@ public class BoletoRestAdapter {
     public ResponseEntity<ReporteBoletosGeneralDTO> generarReporte(
             @RequestParam(name = "fechaInicio") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
             @RequestParam(name = "fechaFin") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin,
-            @RequestParam(required = false) UUID salaId) {
+            @RequestParam(name = "salaId", required = false) UUID salaId) {
 
         return ResponseEntity.ok(
                 generarReporteBoletosInputPort.generarReporte(fechaInicio, fechaFin, salaId)
