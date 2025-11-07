@@ -60,15 +60,24 @@ public class VentaPersistenciaAdaptador implements
 
     @Override
     public List<Venta> listarVentas(FiltroVentaDTO filtro) {
-        return ventaMapper.toVentaList(
-                ventaRepository.buscarConFiltros(
-                        filtro.getUsuarioId(),
-                        filtro.getFuncionId(),
-                        filtro.getEstado(),
-                        filtro.getFechaInicio(),
-                        filtro.getFechaFin()
-                )
-        );
+        if(filtro.getUsuarioId()==null) {
+            return ventaMapper.toVentaList(
+                    ventaRepository.buscarConFiltros(
+                            filtro.getUsuarioId(),
+                            filtro.getFuncionId(),
+                            filtro.getEstado(),
+                            filtro.getFechaInicio(),
+                            filtro.getFechaFin()
+                    )
+            );
+        } else {
+            return ventaMapper.toVentaList(
+                    ventaRepository.findByUsuarioId(
+                            filtro.getUsuarioId()
+                    )
+            );
+        }
+
     }
 
     @Override

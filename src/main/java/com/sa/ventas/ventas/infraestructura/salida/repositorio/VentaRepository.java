@@ -15,7 +15,7 @@ import java.util.UUID;
 @Repository
 public interface VentaRepository extends JpaRepository<VentaEntity, UUID> {
 
-    //List<VentaEntity> findByUsuarioId(UUID usuarioId);
+    List<VentaEntity> findByUsuarioId(UUID usuarioId);
     //List<VentaEntity> findByFuncionId(UUID funcionId);
     //List<VentaEntity> findByEstado(EstadoVenta estado);
 
