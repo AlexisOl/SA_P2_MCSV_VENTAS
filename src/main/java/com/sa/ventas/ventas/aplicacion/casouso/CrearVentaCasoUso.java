@@ -82,9 +82,9 @@ public class CrearVentaCasoUso implements CrearVentaInputPort {
 //        }
 //
 //        // Verificar disponibilidad de asientos
-//        if (!asientoOutputPort.verificarDisponibilidad(crearVentaDTO.getIdsAsientos())) {
-//            throw new IllegalStateException("Uno o más asientos no están disponibles");
-//        }
+        if (!asientoOutputPort.verificarDisponibilidad(crearVentaDTO.getIdsAsientos())) {
+            throw new IllegalStateException("Uno o más asientos no están disponibles");
+        }
 
         UUID ventaId = UUID.randomUUID();
         Double montoOriginal = crearVentaDTO.getMontoTotal();
